@@ -1,0 +1,212 @@
+import React, { useState, useEffect } from 'react';
+import { authService } from '../services/authService';
+
+const PotrosacDashboard = () => {
+  const [objekti, setObjekti] = useState([]);
+  const [greska, setGreska] = useState('');
+  const [poruka, setPoruka] = useState('');
+
+  // Stanje za formu novog objekta
+  const [noviObjekat, setNoviObjekat] = useState({ naziv: '', grad: '', adresa: '', opis: '' });
+
+  // Pratimo samo koji objekat ima otvorenu formu za brojilo
+  const [aktivniObjekatId, setAktivniObjekatId] = useState(null);
+
+  const getHeaders = () => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${authService.getToken()}`
+  });
+
+  // 1. Učitavanje svih objekata i brojila
+  const ucitajObjekte = async () => {
+    try {
+      const res = await fetch('https://localhost:7078/api/potrosac/objekti', { headers: getHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setObjekti(data);
+      } else {
+        setGreska('Neuspešno učitavanje objekata.');
+      }
+    } catch (err) {
+      setGreska('Greška pri komunikaciji sa serverom.');
+    }
+  };
+
+  useEffect(() => { ucitajObjekte(); }, []);
+
+  // 2. Dodavanje novog objekta
+  const handleDodajObjekat = async (e) => {
+    e.preventDefault();
+    setGreska(''); setPoruka('');
+    try {
+      const res = await fetch('https://localhost:7078/api/potrosac/objekti', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          Naziv: noviObjekat.naziv,
+          Grad: noviObjekat.grad,
+          Adresa: noviObjekat.adresa,
+          Opis: noviObjekat.opis
+        })
+      });
+
+      if (res.ok) {
+        setPoruka('Objekat uspešno kreiran!');
+        setNoviObjekat({ naziv: '', grad: '', adresa: '', opis: '' });
+        ucitajObjekte();
+      } else {
+        const errData = await res.json();
+        setGreska(errData.poruka || 'Greška pri dodavanju objekta.');
+      }
+    } catch (err) {
+      setGreska('Sistemska greška.');
+    }
+  };
+
+  // 3. Registracija pametnog brojila (Samo Serijski Broj, Tip i Napomena)
+  const handleRegistrujBrojilo = async (e, objekatId) => {
+    e.preventDefault();
+    setGreska(''); 
+    setPoruka('');
+
+    const formData = new FormData(e.target);
+
+    // OPTIMIZOVAN PAYLOAD: Bez Oznake brojila
+    const payload = {
+      SerijskiBroj: formData.get("serijskiBroj"),
+      Tip: formData.get("tip"),
+      Napomena: formData.get("napomena") || ""
+    };
+
+    console.log("--- DEBUG REAL PAYLOAD ---");
+    console.log("Šaljem na backend za objekat ID " + objekatId + ":", payload);
+
+    try {
+      const res = await fetch(`https://localhost:7078/api/potrosac/objekti/${objekatId}/brojila`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(payload) 
+      });
+
+      if (res.ok) {
+        setPoruka('Brojilo uspešno registrovano! Status: Neuparen.');
+        setAktivniObjekatId(null); 
+        ucitajObjekte(); 
+      } else {
+        const errData = await res.json();
+        if (errData.errors) {
+            setGreska(Object.values(errData.errors).flat().join(" "));
+        } else {
+            setGreska(errData.poruka || 'Greška pri registraciji brojila.');
+        }
+      }
+    } catch (err) {
+      setGreska('Sistemska greška.');
+    }
+  };
+
+  return (
+    <div style={{ fontFamily: 'Arial, sans-serif', padding: '20px' }}>
+      <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #34495e', paddingBottom: '10px' }}>
+        🏠 Moji Objekti i Pametna Brojila
+      </h3>
+
+      {greska && <div style={{ color: 'red', backgroundColor: '#f8d7da', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>{greska}</div>}
+      {poruka && <div style={{ color: 'green', backgroundColor: '#d4edda', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>{poruka}</div>}
+
+      {/* FORMA ZA DODAVANJE OBJEKTA */}
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
+        <h4>Dodaj novi objekat (Stan, Kuća, Vikendica...)</h4>
+        <form onSubmit={handleDodajObjekat} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+          <input type="text" placeholder="Naziv (npr. Stan u centru)" value={noviObjekat.naziv} onChange={e => setNoviObjekat({...noviObjekat, naziv: e.target.value})} required style={{ padding: '8px' }} />
+          <input type="text" placeholder="Grad" value={noviObjekat.grad} onChange={e => setNoviObjekat({...noviObjekat, grad: e.target.value})} required style={{ padding: '8px' }} />
+          <input type="text" placeholder="Adresa" value={noviObjekat.adresa} onChange={e => setNoviObjekat({...noviObjekat, adresa: e.target.value})} required style={{ padding: '8px' }} />
+          <input type="text" placeholder="Dodatni opis (opciono)" value={noviObjekat.opis} onChange={e => setNoviObjekat({...noviObjekat, opis: e.target.value})} style={{ padding: '8px' }} />
+          
+          <button type="submit" style={{ gridColumn: 'span 2', backgroundColor: '#28a745', color: 'white', border: 'none', padding: '10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+            Sačuvaj Objekat
+          </button>
+        </form>
+      </div>
+
+      {/* PRIKAZ OBJEKATA I NJIHOVIH BROJILA */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {objekti.map(obj => (
+          <div key={obj.id} style={{ backgroundColor: 'white', border: '1px solid #dee2e6', borderRadius: '8px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <h4 style={{ marginTop: 0, color: '#007bff' }}>{obj.naziv} <span style={{ color: '#6c757d', fontSize: '14px' }}>- {obj.adresa}, {obj.grad}</span></h4>
+            
+            {/* Tabela sa brojilima za ovaj objekat */}
+            {obj.brojila && obj.brojila.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px', marginBottom: '15px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6', textAlign: 'left' }}>
+                    <th style={{ padding: '10px' }}>Serijski Broj</th>
+                    <th>Tip Priključka</th>
+                    <th>Max Snaga (kW)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {obj.brojila.map(b => (
+                    <tr key={b.id} style={{ borderBottom: '1px solid #dee2e6' }}>
+                      <td style={{ padding: '10px', fontFamily: 'monospace', fontWeight: 'bold' }}>{b.serijskiBroj}</td>
+                      <td>{b.tip}</td>
+                      <td>{b.maksimalnaOdobrenaSnaga} kW</td>
+                      <td>
+                        <span style={{ 
+                          backgroundColor: b.status === 'Uparen' ? '#d4edda' : '#fff3cd', 
+                          color: b.status === 'Uparen' ? '#155724' : '#856404', 
+                          padding: '3px 8px', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold' 
+                        }}>
+                          {b.status === 'Uparen' ? '🟢 Uparen' : '🟡 Neuparen'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ color: '#6c757d', fontStyle: 'italic' }}>Nema dodatih brojila za ovaj objekat.</p>
+            )}
+
+            {/* Dugme za otvaranje forme za dodavanje brojila */}
+            {aktivniObjekatId !== obj.id ? (
+              <button 
+                onClick={() => setAktivniObjekatId(obj.id)} 
+                style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                + Registruj brojilo
+              </button>
+            ) : (
+              /* Forma za dodavanje brojila - OznakaBrojila je uspešno izbačena */
+              <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px dashed #ced4da' }}>
+                <h5 style={{ marginTop: 0 }}>Registracija novog brojila (Format: SA-YYYY-XXXXX)</h5>
+                <form onSubmit={(e) => handleRegistrujBrojilo(e, obj.id)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  
+                  <input type="text" name="serijskiBroj" placeholder="Serijski broj (npr. SA-2026-12345)" required style={{ padding: '8px', gridColumn: 'span 2' }} />
+                  
+                  <select name="tip" defaultValue="Monofazni" style={{ padding: '8px' }}>
+                    <option value="Monofazni">Monofazni priključak (6.9 kW)</option>
+                    <option value="Trofazni">Trofazni priključak (11.04 kW)</option>
+                  </select>
+                  
+                  <input type="text" name="napomena" placeholder="Napomena (opciono)" style={{ padding: '8px' }} />
+
+                  <div style={{ gridColumn: 'span 2', display: 'flex', gap: '10px' }}>
+                    <button type="submit" style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}>Registruj</button>
+                    <button type="button" onClick={() => setAktivniObjekatId(null)} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}>Odustani</button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        ))}
+        {objekti.length === 0 && (
+          <p style={{ textAlign: 'center', color: '#6c757d', padding: '20px' }}>Trenutno nemate nijedan unet objekat.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PotrosacDashboard;
