@@ -1,0 +1,4 @@
+{
+  "Uuid": "2bbe0985-40ba-4d94-8daf-a50ffcd0ff79",
+  "Token": "7f12da05a1284374b5b1ce74ae2f3dbe323912893b5441ff9f5defeecda2f892"
+}

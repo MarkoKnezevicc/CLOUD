@@ -1,0 +1,19 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "MeteringApplicationAPI\\MeteringApplicationAPI.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "FunctionApp\\FunctionApp.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "BrojiloSimulator\\BrojiloSimulator.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
