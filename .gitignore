@@ -1,0 +1,25 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Azure Functions local settings (secrets, per-machine config)
+local.settings.json
+
+# Azurite local emulator data
+MeteringApplication/__azurite_db_*__.json
+MeteringApplication/__azurite_db_*_extent__.json
+MeteringApplication/__blobstorage__/
+MeteringApplication/__queuestorage__/
+MeteringApplication/__tablestorage__/
+MeteringApplication/azurite-debug.log
+MeteringApplication/AzuriteConfig
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
