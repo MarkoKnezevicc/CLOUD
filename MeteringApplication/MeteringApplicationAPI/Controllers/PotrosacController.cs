@@ -137,8 +137,8 @@ public class PotrosacController : ControllerBase
             return BadRequest(new { poruka = "Serijski broj je obavezan." });
         }
 
-        
-        var regex = new Regex(@"^SA-\d{4}-\d{5}$");
+
+        var regex = new Regex(@"^S[AM]-\d{4}-\d{5}$");
         if (!regex.IsMatch(dto.SerijskiBroj))
         {
             return BadRequest(new { poruka = "Serijski broj mora biti u formatu SA-YYYY-XXXXX" });
