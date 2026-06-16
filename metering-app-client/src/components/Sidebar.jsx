@@ -20,33 +20,6 @@ const Sidebar = () => {
       </div>
       <hr style={{ borderColor: '#34495e', width: '100%', marginBottom: '20px' }} />
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '12px', flexGrow: 1 }}>
-        {/* LINKOVI ZA POTROŠAČA */}
-        {user?.uloga === "Potrosac" && (
-          <>
-            <Link to="/potrosac" style={{ color: '#ecf0f1', textDecoration: 'none' }}>🏠 Moji Objekti</Link>
-            <Link to="/potrosac/potrosnja" style={{ color: '#ecf0f1', textDecoration: 'none' }}>📊 Moja Potrošnja</Link>
-          </>
-        )}
-
-        {/* LINKOVI ZA ADMINA */}
-        {user?.uloga === "SistemskiAdmin" && (
-          <>
-            <Link to="/admin" style={{ color: '#ecf0f1', textDecoration: 'none' }}>⚙️ Upravljanje Sistemom</Link>
-            <Link to="/admin/uredjaji" style={{ color: '#ecf0f1', textDecoration: 'none' }}>📟 Sva Brojila u Mreži</Link>
-            <Link to="/admin/firmware" style={{ color: '#ecf0f1', textDecoration: 'none' }}>💾 Firmware Kontrola</Link>
-          </>
-        )}
-
-        {/* LINKOVI ZA ADMINA NAPLATE */}
-        {user?.uloga === "AdministratorNaplate" && (
-          <>
-            <Link to="/naplata" style={{ color: '#ecf0f1', textDecoration: 'none' }}>🧾 Pregled Računa</Link>
-            <Link to="/naplata/tarife" style={{ color: '#ecf0f1', textDecoration: 'none' }}>💰 Podešavanje Tarifa</Link>
-          </>
-        )}
-      </nav>
-
       {/* 4. Dugme sada ispravno zove logout() iz AuthContext-a koji briše i token i ime/prezime */}
       <button 
         onClick={logout} 
