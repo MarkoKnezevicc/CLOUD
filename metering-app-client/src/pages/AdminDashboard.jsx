@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { useAuth } from '../context/AuthContext'; 
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -8,6 +9,7 @@ const AdminDashboard = () => {
   
 
   const { user } = useAuth();
+  const navigate = useNavigate();
   
 
   const [noviUser, setNoviUser] = useState({ ime: '', prezime: '', email: '', telefon: '', lozinka: '', uloga: 1 });
@@ -141,7 +143,19 @@ const AdminDashboard = () => {
             {/* PROMENJENO: Mapiramo kroz prikazaniKorisnici umesto kroz users */}
             {prikazaniKorisnici.map(u => (
               <tr key={u.id} style={{ borderBottom: '1px solid #dee2e6' }}>
-                <td style={{ padding: '12px' }}>{u.ime} {u.prezime}</td>
+                <td style={{ padding: '12px' }}>
+                  <span 
+                    onClick={() => navigate(`/admin/users/${u.id}/meters`)}
+                    style={{ 
+                      color: '#007bff', 
+                      textDecoration: 'underline', 
+                      cursor: 'pointer', 
+                      fontWeight: '500' 
+                    }}
+                  >
+                    {u.ime} {u.prezime}
+                  </span>
+                </td>
                 <td>{u.email}</td>
                 <td><span style={{ backgroundColor: '#e2e3e5', padding: '3px 8px', borderRadius: '3px', fontSize: '14px' }}>{u.uloga}</span></td>
                 <td>

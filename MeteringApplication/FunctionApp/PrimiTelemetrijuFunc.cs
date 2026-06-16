@@ -27,52 +27,63 @@ namespace SmartMetering.AzureFunctions
             _telemetrijaRepository = telemetrijaRepository;
         }
 
+        // Klasa koja omogućava istovremeno vraćanje HTTP odgovora simulatoru i slanje kroz SignalR
+        public class VisestrukiIzlaz
+        {
+            public HttpResponseData HttpResponse { get; set; }
+
+
+            //Propety za slanje poruka odredjenoj sobi
+            [SignalROutput(HubName = "telemetrijaHub")]
+            public SignalRMessageAction SignalRMessage { get; set; }
+        }
+
         [Function("PrimiTelemetriju")]
-        public async Task<HttpResponseData> Run(
+        public async Task<VisestrukiIzlaz> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "telemetrija")] HttpRequestData req)
         {
-            var response = req.CreateResponse();
-            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            var httpResponse = req.CreateResponse();
+            httpResponse.Headers.Add("Content-Type", "application/json; charset=utf-8");
 
-            // 1. X-Device-Token header 
+            // 1. Provera X-Device-Token-a iz zaglavlja zahteva
             if (!req.Headers.TryGetValues("X-Device-Token", out var tokenValues))
             {
-                response.StatusCode = HttpStatusCode.Unauthorized;
-                await response.WriteStringAsync(JsonConvert.SerializeObject(new { poruka = "Nedostaje X-Device-Token header." }));
-                return response;
+                httpResponse.StatusCode = HttpStatusCode.Unauthorized;
+                await httpResponse.WriteStringAsync(JsonConvert.SerializeObject(new { poruka = "Nedostaje X-Device-Token header." }));
+                return new VisestrukiIzlaz { HttpResponse = httpResponse, SignalRMessage = null };
             }
 
             string deviceToken = tokenValues.FirstOrDefault() ?? string.Empty;
 
-            // 2. Trazenje brojila na osnovu tokena (samo uparena brojila)
+            // 2. Pronalaženje brojila u SQL bazi na osnovu poslatog tokena
             var brojilo = await _brojiloRepository.GetByDeviceTokenAsync(deviceToken);
             if (brojilo == null)
             {
-                response.StatusCode = HttpStatusCode.Unauthorized;
-                await response.WriteStringAsync(JsonConvert.SerializeObject(new { poruka = "Nevažeći Device Access Token." }));
-                return response;
+                httpResponse.StatusCode = HttpStatusCode.Unauthorized;
+                await httpResponse.WriteStringAsync(JsonConvert.SerializeObject(new { poruka = "Nevažeći Device Access Token." }));
+                return new VisestrukiIzlaz { HttpResponse = httpResponse, SignalRMessage = null };
             }
 
-            // 3. Parsiranje tela zahteva
+            // 3. Čitanje i parsiranje JSON tela koje šalje simulator
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var dto = JsonConvert.DeserializeObject<TelemetrijaZahtevDto>(requestBody);
 
             if (dto == null)
             {
-                response.StatusCode = HttpStatusCode.BadRequest;
-                await response.WriteStringAsync(JsonConvert.SerializeObject(new { poruka = "Telo zahteva nije validan JSON." }));
-                return response;
+                httpResponse.StatusCode = HttpStatusCode.BadRequest;
+                await httpResponse.WriteStringAsync(JsonConvert.SerializeObject(new { poruka = "Telo zahteva nije validan JSON." }));
+                return new VisestrukiIzlaz { HttpResponse = httpResponse, SignalRMessage = null };
             }
 
-            // 4. Klasifikacija tarife pri prijemu (23h-07h = NT, 07h-23h = VT)
+            // 4. Određivanje tarife (od 23h do 07h je Niža/Jeftina tarifa)
             int sat = dto.VremeMerenja.Hour;
             TipTarife tarifa = (sat >= 23 || sat < 7) ? TipTarife.NizaTarifa : TipTarife.VisaTarifa;
 
-            // 5. Mapiranje na domensku klasu
+            // 5. Mapiranje na domensku klasu telemetrije
             var telemetrija = new Telemetrija
             {
                 Id = Guid.NewGuid(),
-                BrojiloId = brojilo.Id,
+                BrojiloId = brojilo.Id, // GUID brojila iz baze podataka
                 VremeMerenja = dto.VremeMerenja,
                 UkupnaPotrosnja = dto.UkupnaPotrosnja,
                 TrenutnoOpterecenje = dto.TrenutnoOpterecenje,
@@ -93,35 +104,46 @@ namespace SmartMetering.AzureFunctions
                 FaktorSnageL3 = dto.FaktorSnageL3
             };
 
-            // 6. Prioritetni upis u Telemetrije tabelu
+            //Upis u Azure Table Storage bazu (istorijski podaci)
             await _telemetrijaRepository.SaveAsync(telemetrija);
 
-            _logger.LogInformation($"[TELEMETRIJA] Brojilo {brojilo.Id}: {telemetrija.UkupnaPotrosnja} kWh @ {telemetrija.VremeMerenja:O} ({tarifa})");
+            //Soba je imenovana po id-u brojila
+            string nazivSobe = brojilo.Id.ToString();
+            _logger.LogInformation($"[SIGNALR REALTIME] Šaljem podatke uživo u sobu brojila: {nazivSobe}");
 
-            response.StatusCode = HttpStatusCode.OK;
-            await response.WriteStringAsync(JsonConvert.SerializeObject(new
+            //Slanje poruke kroz Azure SignalR servis u izabranu sobu
+            var signalrPoruka = new SignalRMessageAction("NovoMerenjeStiglo", new object[] { telemetrija })
+            {
+                GroupName = nazivSobe
+            };
+
+            // Formiranje uspešnog HTTP odgovora za simulator
+            httpResponse.StatusCode = HttpStatusCode.OK;
+            await httpResponse.WriteStringAsync(JsonConvert.SerializeObject(new
             {
                 poruka = "Telemetrija uspešno primljena.",
                 tarifa = tarifa.ToString()
             }));
-            return response;
+
+            return new VisestrukiIzlaz
+            {
+                HttpResponse = httpResponse,
+                //saljemo poruku sobi
+                SignalRMessage = signalrPoruka
+            };
         }
     }
 
-
-    // DTO
     public class TelemetrijaZahtevDto
     {
         public DateTime VremeMerenja { get; set; }
         public decimal UkupnaPotrosnja { get; set; }
         public decimal TrenutnoOpterecenje { get; set; }
 
-        // Monofazni prikljucak
         public decimal? Napon { get; set; }
         public decimal? Struja { get; set; }
         public decimal? FaktorSnage { get; set; }
 
-        // Trofazni prikljucak 
         public decimal? NaponL1 { get; set; }
         public decimal? NaponL2 { get; set; }
         public decimal? NaponL3 { get; set; }

@@ -42,6 +42,14 @@ public class PromenaStatusaDto
 {
     public bool IsActive { get; set; }
 }
+public class BrojiloPrikazDto
+{
+    public int Id { get; set; }
+    public string NazivObjekta { get; set; } = string.Empty;
+    public string AdresaObjekta { get; set; } = string.Empty;
+    public string Tip { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+}
 
 [Route("api/[controller]")]
 [ApiController]
@@ -76,7 +84,32 @@ public class AdminController : ControllerBase
         return Ok(korisnici);
     }
 
-    
+    [HttpGet("users/{userId}/meters")]
+    public async Task<IActionResult> GetUserMeters(int userId)
+    {
+        var korisnikPostoji = await _context.Korisnici.AnyAsync(k => k.Id == userId);
+        if (!korisnikPostoji)
+        {
+            return NotFound(new { poruka = "Korisnik nije pronađen!" });
+        }
+
+        // Izvlačimo sva brojila sa svih objekata koji pripadaju ovom korisniku
+        var brojila = await _context.PametnaBrojila
+            .Where(b => b.Objekat.KorisnikId == userId)
+            .Select(b => new BrojiloPrikazDto
+            {
+                Id = b.Id,
+                NazivObjekta = b.Objekat.Naziv,
+                AdresaObjekta = b.Objekat.Grad + ", " + b.Objekat.Adresa,
+                Tip = b.Tip.ToString(),
+                Status = b.Status.ToString()
+            })
+            .ToListAsync();
+
+        return Ok(brojila);
+    }
+
+
     [HttpPost("users")]
     public async Task<IActionResult> CreateUser([FromBody] KorisnikKreiranjeDto model)
     {
