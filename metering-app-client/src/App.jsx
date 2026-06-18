@@ -24,35 +24,35 @@ function App() {
           
           {/* RUTA ZA POTROŠAČA */}
           <Route path="potrosac" element={
-            <ProtectedRoute allowedRoles={['Potrosac']}>
+            <ProtectedRoute dozvoljeneUloge={['Potrosac']}>
               <PotrosacDashboard />
             </ProtectedRoute>
           } />
 
           {/* RUTA ZA GLAVNI KONTROLNI PANEL ADMINA */}
           <Route path="admin" element={
-            <ProtectedRoute allowedRoles={['SistemskiAdmin']}>
+            <ProtectedRoute dozvoljeneUloge={['SistemskiAdmin']}>
               <AdminDashboard />
             </ProtectedRoute>
           } />
 
           {/* ZAŠTIĆENA RUTA ZA PREGLED PAMETNIH BROJILA ODREĐENOG KORISNIKA */}
           <Route path="admin/users/:userId/meters" element={
-            <ProtectedRoute allowedRoles={['SistemskiAdmin']}>
+            <ProtectedRoute dozvoljeneUloge={['SistemskiAdmin']}>
               <UserMeters />
             </ProtectedRoute>
           } />
 
 
           <Route path="admin/telemetrija/:brojiloId" element={
-            <ProtectedRoute allowedRoles={['SistemskiAdmin']}>
+            <ProtectedRoute dozvoljeneUloge={['SistemskiAdmin']}>
               <LiveTelemetry />
             </ProtectedRoute>
           } />
 
           {/* RUTA ZA ADMINISTRATORA NAPLATE */}
           <Route path="naplata" element={
-            <ProtectedRoute allowedRoles={['AdministratorNaplate']}>
+            <ProtectedRoute dozvoljeneUloge={['AdministratorNaplate']}>
               <NaplataDashboard />
             </ProtectedRoute>
           } />

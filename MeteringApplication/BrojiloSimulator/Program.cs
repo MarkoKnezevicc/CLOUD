@@ -168,7 +168,9 @@ namespace BrojiloSimulator
 
             Random rand = new Random();
             decimal ukupnaPotrosnjaKwh = (decimal)(rand.NextDouble() * 500 + 2100);
+            // Testiranje
             DateTime virtuelnoVreme = DateTime.Now;
+            //DateTime virtuelnoVreme = DateTime.Now.AddMonths(-1);
 
             
 

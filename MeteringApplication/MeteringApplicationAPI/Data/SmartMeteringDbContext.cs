@@ -10,6 +10,8 @@ public class SmartMeteringDbContext : DbContext
     public DbSet<Korisnik> Korisnici { get; set; }
     public DbSet<Objekat> Objekti { get; set; }
     public DbSet<PametnoBrojilo> PametnaBrojila { get; set; }
+    public DbSet<TarifniModel> TarifniModeli { get; set; }
+    public DbSet<Racun> Racuni { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +50,41 @@ public class SmartMeteringDbContext : DbContext
                   .WithMany(o => o.PametnaBrojila)
                   .HasForeignKey(pb => pb.ObjekatId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TarifniModel>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.CenaZ_VT).HasColumnType("decimal(18,4)");
+            entity.Property(t => t.CenaZ_NT).HasColumnType("decimal(18,4)");
+            entity.Property(t => t.CenaP_VT).HasColumnType("decimal(18,4)");
+            entity.Property(t => t.CenaP_NT).HasColumnType("decimal(18,4)");
+            entity.Property(t => t.CenaC_VT).HasColumnType("decimal(18,4)");
+            entity.Property(t => t.CenaC_NT).HasColumnType("decimal(18,4)");
+            entity.Property(t => t.CenaObracunskeSnage).HasColumnType("decimal(18,4)");
+            entity.Property(t => t.TrosakSnabdevaca).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<Racun>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.EnergijaVT).HasColumnType("decimal(18,4)");
+            entity.Property(r => r.EnergijaNT).HasColumnType("decimal(18,4)");
+            entity.Property(r => r.IznosZelena).HasColumnType("decimal(18,2)");
+            entity.Property(r => r.IznosPlava).HasColumnType("decimal(18,2)");
+            entity.Property(r => r.IznosCrvena).HasColumnType("decimal(18,2)");
+            entity.Property(r => r.FiksniTroskovi).HasColumnType("decimal(18,2)");
+            entity.Property(r => r.UkupanIznos).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(r => r.Brojilo)
+                  .WithMany()
+                  .HasForeignKey(r => r.BrojiloId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.Korisnik)
+                  .WithMany()
+                  .HasForeignKey(r => r.KorisnikId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
