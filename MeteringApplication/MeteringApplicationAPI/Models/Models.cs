@@ -91,3 +91,59 @@ public class PametnoBrojilo
     public int ObjekatId { get; set; }
     public Objekat Objekat { get; set; }
 }
+
+public class TarifniModel
+{
+    public int Id { get; set; }
+
+    // Zelena zona (0-350 kwh)
+    public decimal CenaZ_VT { get; set; }
+    public decimal CenaZ_NT { get; set; }
+
+    // Plava zona (351-1200 kwh)
+    public decimal CenaP_VT { get; set; }
+    public decimal CenaP_NT { get; set; }
+
+    // Crvena zona (>1200 kwh)
+    public decimal CenaC_VT { get; set; }
+    public decimal CenaC_NT { get; set; }
+
+    // Fiksni troskovi
+    public decimal CenaObracunskeSnage { get; set; }
+    public decimal TrosakSnabdevaca { get; set; }
+    public DateTime DatumKreiranja { get; set; }
+    public bool IsAktivan { get; set; }
+}
+
+public enum StatusPlacanja
+{
+    Neplacen,
+    Placen
+}
+
+public class Racun
+{
+    public int Id { get; set; }
+    public int BrojiloId { get; set; }
+    public PametnoBrojilo Brojilo { get; set; }
+    public int KorisnikId { get; set; }
+    public Korisnik Korisnik { get; set; }
+    public int GodinaObracuna { get; set; }
+    public int MesecObracuna { get; set; }
+
+    // Ukupna potrosnja po tarifi (kwh)
+    public decimal EnergijaVT { get; set; }
+    public decimal EnergijaNT { get; set; }
+
+    // Iznosi po zonama
+    public decimal IznosZelena { get; set; }
+    public decimal IznosPlava { get; set; }
+    public decimal IznosCrvena { get; set; }
+    public decimal FiksniTroskovi { get; set; }
+    public decimal UkupanIznos {  get; set; }
+    public StatusPlacanja Status { get; set; }
+    public DateTime DatumIzdavanja { get; set; }
+
+    // Tekstualni format racuna - ceo tekst racuna se cuva
+    public string TekstRacuna { get; set; }
+}

@@ -5,6 +5,10 @@ const PotrosacDashboard = () => {
   const [objekti, setObjekti] = useState([]);
   const [greska, setGreska] = useState('');
   const [poruka, setPoruka] = useState('');
+  // Dodato
+  const [aktivnoBrojiloZaRacune, setAktivnoBrojiloZaRacune] = useState(null);
+  const [racuni, setRacuni] = useState([]);
+  const [ucitavamRacune, setUcitavamRacune] = useState(false);
 
   // Stanje za formu novog objekta
   const [noviObjekat, setNoviObjekat] = useState({ naziv: '', grad: '', adresa: '', opis: '' });
@@ -29,6 +33,26 @@ const PotrosacDashboard = () => {
       }
     } catch (err) {
       setGreska('Greška pri komunikaciji sa serverom.');
+    }
+  };
+
+  // DODATO: Ucitavanje racuna 
+  const ucitajRacune = async (brojiloId) => {
+    if (aktivnoBrojiloZaRacune === brojiloId) {
+      setAktivnoBrojiloZaRacune(null);
+      setRacuni([]);
+      return;
+    }
+    setUcitavamRacune(true);
+    setAktivnoBrojiloZaRacune(brojiloId);
+    try {
+      const res = await fetch(`https://localhost:7078/api/obracun/racuni/${brojiloId}`, { headers: getHeaders() });
+      if (res.ok) setRacuni(await res.json());
+      else setGreska('Greska pri ucitavanju racuna.');
+    } catch {
+      setGreska('Sistemska greska.');
+    } finally {
+      setUcitavamRacune(false);
     }
   };
 
@@ -148,7 +172,8 @@ const PotrosacDashboard = () => {
                 </thead>
                 <tbody>
                   {obj.brojila.map(b => (
-                    <tr key={b.id} style={{ borderBottom: '1px solid #dee2e6' }}>
+                    <React.Fragment key = {b.id}>
+                      <tr style={{ borderBottom: '1px solid #dee2e6' }}>
                       <td style={{ padding: '10px', fontFamily: 'monospace', fontWeight: 'bold' }}>{b.serijskiBroj}</td>
                       <td>{b.tip}</td>
                       <td>{b.maksimalnaOdobrenaSnaga} kW</td>
@@ -161,7 +186,65 @@ const PotrosacDashboard = () => {
                           {b.status === 'Uparen' ? '🟢 Uparen' : '🟡 Neuparen'}
                         </span>
                       </td>
+                      <td>
+                        <button onClick={() => ucitajRacune(b.id)}
+                        style = {{ backgroundColor: '#6f42c1', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}>
+                          {aktivnoBrojiloZaRacune == b.id ? 'Zatvori racune' : 'Prikazi racune'}
+                        </button>
+                      </td>
                     </tr>
+                    
+                    {/* Red sa racunima */}
+                    {aktivnoBrojiloZaRacune === b.id && (
+                      <tr>
+                        <td colSpan="5" style = {{ backgroundColor: '#f8f9fa', padding: '15px'}}>
+                          {ucitavamRacune ? (
+                            <p>Ucitavam racune...</p>
+                          ) : racuni.length === 0 ? (
+                            <p style = {{ color: '#6c757d', fontStyle: 'italic'}}>Nema generisanih racuna za ovo brojilo.</p>
+                          ) : ( 
+                            <table style= {{ width: '100%', borderCollapse: 'collapse', fontSize: '14px'}}>
+                              <thead>
+                                <tr style={{ backgroundColor: '#e9ecef', textAlign: 'left'}}>
+                                  <th style = {{ padding: '8px'}}>Period</th>
+                                  <th>VT (kwh)</th>
+                                  <th>NT (kwh)</th>
+                                  <th>Zelena</th>
+                                  <th>Plava</th>
+                                  <th>Crvena</th>
+                                  <th>Fiksni</th>
+                                  <th>Ukupno</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {racuni.map(r => (
+                                  <tr key = {r.id} style = {{ borderBottom: '1px solid #dee2e6' }}>
+                                    <td style = {{ padding: '8px', fontWeight: 'bold'}}>
+                                      {String(r.mesecObracuna).padStart(2, '0')}/{r.godinaObracuna}
+                                    </td>
+                                    <td>{r.energijaVT?.toFixed(2)}</td>
+                                    <td>{r.energijaNT?.toFixed(2)}</td>
+                                    <td>{r.iznosZelena?.toFixed(2)} RSD</td>
+                                    <td>{r.iznosPlava?.toFixed(2)} RSD</td>
+                                    <td>{r.iznosCrvena?.toFixed(2)} RSD</td>
+                                    <td>{r.fiksniTroskovi?.toFixed(2)} RSD</td>
+                                    <td style = {{ fontWeight: 'bold'}}>{r.ukupanIznos?.toFixed(2)} RSD</td>
+                                    <td>
+                                      <span style = {{ backgroundColor: r.status === 'Placen' ? '#d4edda' : '#f8d7da', color: r.status === 'Placen' ? '#155724' : '#721c24', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold'}}>
+                                        {r.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
