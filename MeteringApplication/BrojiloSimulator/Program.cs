@@ -170,15 +170,31 @@ namespace BrojiloSimulator
             decimal ukupnaPotrosnjaKwh = (decimal)(rand.NextDouble() * 500 + 2100);
             DateTime virtuelnoVreme = DateTime.Now;
 
+            
+
             while (true)
             {
+                bool simulirajPadNapona = rand.Next(1, 101) <= 15;
                 // Objekat koji šaljemo ka Azure funkciji kolege
                 object telemetrijaDto = null;
 
                 if (jeMonofazno)
                 {
+                    decimal napon;
                     //1. LOGIKA ZA MONOFAZNO BROJILO (Sve faze L1, L2, L3 ostaju NULL)
-                    decimal napon = (decimal)(229.0 + rand.NextDouble() * 3); // Jedna faza oko 230V
+                    if (simulirajPadNapona)
+                    {
+                        // Pad napona: generiše vrednost između 165.0V i 188.9V (ispod 190V)
+                        napon = (decimal)(165.0 + rand.NextDouble() * 24);
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"\n[ KVAR - MONOFAZNO] Veštački izazvan pad napona: {Math.Round(napon, 1)}V!");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        // Normalno stanje (tvoj originalni kod)
+                        napon = (decimal)(229.0 + rand.NextDouble() * 3);
+                    }
                     decimal struja = (decimal)(0.5 + rand.NextDouble() * 15); // Jedna strujna linija
                     decimal cosPhi = (decimal)(0.90 + rand.NextDouble() * 0.08);
 

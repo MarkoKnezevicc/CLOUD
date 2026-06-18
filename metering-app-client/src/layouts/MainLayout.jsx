@@ -1,33 +1,60 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
-import { useAuth } from '../context/AuthContext';
+import { Outlet, useNavigate } from 'react-router-dom';
+import GlobalNotificationCenter from '../components/GlobalNotificationCenter';
+import { authService } from '../services/authService'; 
 
 const MainLayout = () => {
-  const { user } = useAuth(); // Povlačenje iz globalnog stanja
+  const navigate = useNavigate();
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+
+  const rola = authService?.getUserRole?.() || localStorage.getItem('rola') || 'SistemskiAdmin'; 
+  const isSistemskiAdmin = rola === 'SistemskiAdmin';
+
+  const handleLogout = () => {
+    
+    localStorage.clear(); 
+    if (authService?.logout) authService.logout();
+    navigate('/login');
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
-      {/* Levi deo: Meni */}
-      <div style={{ width: '250px', backgroundColor: '#2c3e50', color: 'white', padding: '20px' }}>
-        <Sidebar />
+      
+      
+      <div style={{ width: '260px', backgroundColor: '#2c3e50', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px 0' }}>
+        <div>
+          <h3 style={{ padding: '0 20px', margin: '0 0 20px 0', borderBottom: '1px solid #34495e', paddingBottom: '15px' }}>Smart Grid</h3>
+          <div style={{ padding: '0 20px', fontSize: '14px', color: '#ecf0f1' }}>
+            <span style={{ color: '#95a5a6', display: 'block', fontSize: '12px' }}>👤 Korisnik:</span>
+            <strong>simkela@smartmeter.com</strong>
+          </div>
+        </div>
+
+        
+        <div style={{ padding: '0 20px' }}>
+          <button 
+            onClick={handleLogout}
+            style={{ width: '100%', padding: '12px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#c0392b'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#e74c3c'}
+          >
+            Odjavi se
+          </button>
+        </div>
       </div>
 
-      {/* Desni deo: Glavni sadržaj stranice */}
-      <div style={{ flex: 1, padding: '30px', backgroundColor: '#f8f9fa' }}>
-        <header style={{ borderBottom: '1px solid #dee2e6', paddingBottom: '15px', marginBottom: '20px' }}>
-          <h2>Smart Grid Dashboard</h2>
-          <span style={{ color: '#6c757d' }}>Ulogovani ste kao: <strong>{user.uloga}</strong></span>
-        </header>
+      {/* 2. DESNI BELI PROSTOR ZA SADRŽAJ STRANICA */}
+      <div style={{ flex: 1, backgroundColor: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
         
-        <main>
+        {/*GLOBALNI CENTAR: Skriven u pozadini, sluša 'SvaKriticnaStanja' na nivou celog portala */}
+        {isSistemskiAdmin && <GlobalNotificationCenter />}
+
+        
+        <div style={{ padding: '30px', flex: 1 }}>
           <Outlet />
-        </main>
+        </div>
       </div>
+
     </div>
   );
 };

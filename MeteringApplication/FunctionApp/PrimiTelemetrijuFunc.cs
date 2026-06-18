@@ -36,6 +36,9 @@ namespace SmartMetering.AzureFunctions
             //Propety za slanje poruka odredjenoj sobi
             [SignalROutput(HubName = "telemetrijaHub")]
             public SignalRMessageAction SignalRMessage { get; set; }
+
+            [SignalROutput(HubName = "telemetrijaHub")]
+            public SignalRMessageAction HitnoUpozorenje { get; set; }
         }
 
         [Function("PrimiTelemetriju")]
@@ -107,6 +110,33 @@ namespace SmartMetering.AzureFunctions
             //Upis u Azure Table Storage bazu (istorijski podaci)
             await _telemetrijaRepository.SaveAsync(telemetrija);
 
+            SignalRMessageAction hitnoUpozorenjePoruka = null;
+
+            // =========================================================================
+                //dodatak poruka upozorenja koja se ispisuje adminu usled pada napona 
+            // =========================================================================
+            bool padNaponaDetektovan =
+                (telemetrija.Napon < 190 && telemetrija.Napon > 0) ||
+                (telemetrija.NaponL1 < 190 && telemetrija.NaponL1 > 0) ||
+                (telemetrija.NaponL2 < 190 && telemetrija.NaponL2 > 0) ||
+                (telemetrija.NaponL3 < 190 && telemetrija.NaponL3 > 0);
+
+            if (padNaponaDetektovan)
+            {
+                _logger.LogWarning($"[ALARM] Kritičan napon na brojilu {brojilo.Id}!");
+
+                hitnoUpozorenjePoruka = new SignalRMessageAction("KriticanNaponUpozorenje", new object[] {
+                    new {
+                        poruka = "DETEKTOVAN KRITIČAN PAD NAPONA ISPOD 190V!",
+                        brojiloId = brojilo.Id,
+                        vreme = telemetrija.VremeMerenja
+                    }
+                })
+                {
+                    GroupName = "SvaKriticnaStanja"
+                };
+            }
+
             //Soba je imenovana po id-u brojila
             string nazivSobe = brojilo.Id.ToString();
             _logger.LogInformation($"[SIGNALR REALTIME] Šaljem podatke uživo u sobu brojila: {nazivSobe}");
@@ -129,7 +159,9 @@ namespace SmartMetering.AzureFunctions
             {
                 HttpResponse = httpResponse,
                 //saljemo poruku sobi
-                SignalRMessage = signalrPoruka
+                SignalRMessage = signalrPoruka,
+                //upozorenje pada napona
+                HitnoUpozorenje = hitnoUpozorenjePoruka
             };
         }
     }
