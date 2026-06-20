@@ -27,6 +27,9 @@ namespace SmartMetering.AzureFunctions
 
             [SignalROutput(HubName = "telemetrijaHub")]
             public SignalRMessageAction HitnoUpozorenje { get; set; }
+
+            [SignalROutput(HubName = "telemetrijaHub")]
+            public SignalRMessageAction MrezniHeartbeat { get; set; }
         }
 
         [Function("ObradaTelemetrijeQueue")]
@@ -76,6 +79,17 @@ namespace SmartMetering.AzureFunctions
                 // 5. Upis u Azure Table Storage bazu (istorijski podaci iz radnika)
                 await _telemetrijaRepository.SaveAsync(telemetrija);
 
+                var mrezniHeartbeatPoruka = new SignalRMessageAction("MrezniHeartbeatStigao", new object[] {
+                new {
+                    brojiloId = telemetrija.BrojiloId, // Saljemo int ID brojila
+                    vreme = telemetrija.VremeMerenja,
+                    ukupnaPotrosnja = telemetrija.UkupnaPotrosnja
+                }
+                    })
+                {
+                    GroupName = "SveMrezneAktivnosti" // Svi admini na tabelama slušaju ovu grupu
+                };
+
                 SignalRMessageAction hitnoUpozorenjePoruka = null;
 
                 // 6. Provera anomalije - Pad napona ispod 190V
@@ -113,7 +127,8 @@ namespace SmartMetering.AzureFunctions
                 return new SignalRIzlazi
                 {
                     SignalRMessage = signalrPoruka,
-                    HitnoUpozorenje = hitnoUpozorenjePoruka
+                    HitnoUpozorenje = hitnoUpozorenjePoruka,
+                    MrezniHeartbeat = mrezniHeartbeatPoruka
                 };
             }
             catch (Exception ex)

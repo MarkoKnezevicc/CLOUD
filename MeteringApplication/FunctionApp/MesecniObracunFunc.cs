@@ -23,13 +23,14 @@ namespace FunctionApp
 
         [Function("MesecniObracun")]
         public async Task Run(
-            [TimerTrigger("0 0 0 1 * *")] TimerInfo timerInfo)
+            //[TimerTrigger("0 0 0 1 * *")] TimerInfo timerInfo)
+            [TimerTrigger("0 * * * * *")] TimerInfo timerInfo)
         {
             _logger.LogInformation($"[OBRACUN] Mesecni obracun pokrenut: {DateTime.UtcNow}");
 
             string sqlConnectionString = Environment.GetEnvironmentVariable("SqlConnectionString");
 
-            DateTime prosliMesec = DateTime.UtcNow.AddMonths(-1);
+            DateTime prosliMesec = DateTime.UtcNow;
             int godina = prosliMesec.Year;
             int mesec = prosliMesec.Month;
 

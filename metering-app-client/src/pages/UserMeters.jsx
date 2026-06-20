@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
+import * as signalR from '@microsoft/signalr'; 
 
 const UserMeters = () => {
   const { userId } = useParams();
@@ -14,6 +15,7 @@ const UserMeters = () => {
     'Authorization': `Bearer ${authService.getToken()}`
   });
 
+
   useEffect(() => {
     const ucitajBrojila = async () => {
       try {
@@ -22,7 +24,14 @@ const UserMeters = () => {
         });
         if (res.ok) {
           const data = await res.json();
-          setBrojila(data);
+          
+          const inicijalizovano = data.map(b => ({
+            ...b,
+            mrezniStatus: 'offline',
+            poslednjeVidjenje: null
+          }));
+          
+          setBrojila(inicijalizovano);
         } else {
           setGreska('Neuspešno učitavanje brojila za izabranog korisnika.');
         }
@@ -35,6 +44,84 @@ const UserMeters = () => {
 
     if (userId) ucitajBrojila();
   }, [userId]);
+
+  useEffect(() => {
+  
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("http://localhost:7056/api") 
+    .withAutomaticReconnect()
+    .build();
+
+  connection.start()
+    .then(() => {
+      console.log("Tabela brojila se uspešno pretplatila na SveMrezneAktivnosti kanal!");
+      
+      
+      fetch('http://localhost:7056/api/joinGroup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          connectionId: connection.connectionId, 
+          groupName: "SveMrezneAktivnosti" 
+        })
+      }).catch(err => console.error("Greška pri joinGroup:", err));
+    })
+    .catch(err => console.error("SignalR greska na tabeli:", err));
+
+ 
+  connection.on("MrezniHeartbeatStigao", (data) => {
+    setBrojila(prethodnaBrojila => 
+      prethodnaBrojila.map(b => {
+        if (b.id === data.brojiloId) {
+          return {
+            ...b,
+            mrezniStatus: 'online',
+            poslednjeVidjenje: new Date()
+          };
+        }
+        return b;
+      })
+    );
+  });
+
+  return () => {
+    connection.stop();
+  };
+}, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const sada = new Date();
+      
+      setBrojila(prethodnaBrojila => 
+        prethodnaBrojila.map(b => {
+          
+          if (!b.poslednjeVidjenje) return b;
+
+          
+          if (sada - b.poslednjeVidjenje > 15000 && b.mrezniStatus === 'online') {
+  
+  
+            const kvarEvent = new CustomEvent('lokalniKvarUpozorenje', {
+              detail: {
+                brojiloId: b.id,
+                adresa: b.adresaObjekta || 'Nepoznata adresa'
+              }
+            });
+            window.dispatchEvent(kvarEvent);
+
+            return {
+              ...b,
+              mrezniStatus: 'offline' 
+            };
+          }
+          return b;
+        })
+      );
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
@@ -61,7 +148,8 @@ const UserMeters = () => {
                 <th>Lokacija (Objekat)</th>
                 <th>Adresa</th>
                 <th>Tip Priključka</th>
-                <th>Status</th>
+                <th>Status uparivanja</th>
+                <th>Mrežni Status uživo</th>
                 <th style={{ textAlign: 'center' }}>Akcija</th>
               </tr>
             </thead>
@@ -81,6 +169,21 @@ const UserMeters = () => {
                       ● {b.status}
                     </span>
                   </td>
+                  
+                  
+                  <td>
+                    <span style={{ 
+                      color: b.mrezniStatus === 'online' ? '#28a745' : '#dc3545', 
+                      fontWeight: 'bold',
+                      backgroundColor: b.mrezniStatus === 'online' ? '#e8f5e9' : '#ffebee',
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      fontSize: '12px'
+                    }}>
+                      ● {b.mrezniStatus.toUpperCase()}
+                    </span>
+                  </td>
+
                   <td style={{ textAlign: 'center' }}>
                     <button
                       onClick={() => navigate(`/admin/telemetrija/${b.id}`)}
@@ -103,7 +206,7 @@ const UserMeters = () => {
 
               {brojila.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
                     Ovaj korisnik nema dodeljenih pametnih brojila na svojim objektima.
                   </td>
                 </tr>

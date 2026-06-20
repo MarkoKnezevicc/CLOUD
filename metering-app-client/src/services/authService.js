@@ -19,29 +19,24 @@ export const authService = {
 
     try {
       const decoded = jwtDecode(token);
-      console.log("Dekodirani token unutar servisa:", decoded); // Ovo će nam ispisati tačna polja
+      console.log("Dekodirani token unutar servisa:", decoded); 
 
-      // Hvata ulogu bilo da je role, Role, uloga, Uloga ili MS Claim
-      const uloga = 
-                    decoded.role || 
-                    decoded.Role || 
-                    decoded.uloga || 
-                    decoded.Uloga;
+      
+      const stvarnaUloga = decoded.role || decoded.Role || 'Potrosac';
                     
-      // Hvata email na isti način
-      const email = 
-                    decoded.email || 
-                    decoded.Email;
+      
+      const email = decoded.email || decoded.Email;
 
-      const id = 
-                 decoded.id || 
-                 decoded.Id;
+      
+      const id = decoded.nameid || decoded.id || decoded.Id;
 
-      // VRAĆAMO ČIST OBJEKAT GDE SU SVA POLJA MALIM SLOVIMA
+      
       return {
         id: id,
         email: email,
-        uloga: uloga // Garantovano malim slovima ključ "uloga"
+        uloga: stvarnaUloga, 
+        rola: stvarnaUloga, 
+        role: stvarnaUloga   
       };
     } catch (error) {
       console.error("Greška pri dekodiranju JWT tokena:", error);
