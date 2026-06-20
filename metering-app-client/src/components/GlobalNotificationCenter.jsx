@@ -9,7 +9,7 @@ const GlobalNotificationCenter = () => {
   useEffect(() => {
     let active = true;
 
-    console.log("📡 Pokrećem GLOBALNI centar za hitna upozorenja...");
+    console.log("Pokrećem GLOBALNI centar za hitna upozorenja...");
 
     const globalnaKonekcija = new signalR.HubConnectionBuilder()
       .withUrl('http://localhost:7056/api') 
@@ -23,7 +23,7 @@ const GlobalNotificationCenter = () => {
     globalnaKonekcija.on('KriticanNaponUpozorenje', (alarm) => {
       if (!active || !alarm) return;
       
-      console.log("💥 STIGAO GLOBALNI ALARM U LOGOVE:", alarm);
+      console.log("STIGAO GLOBALNI ALARM U LOGOVE:", alarm);
 
       const siroviId = alarm.BrojiloId || alarm.brojiloId || "";
       const idKaoString = String(siroviId);
@@ -64,12 +64,32 @@ const GlobalNotificationCenter = () => {
 
     pokreniGlobalnuVezu();
 
+    //Za offline kvarove
+    const handleLokalniKvar = (e) => {
+      if (!active) return;
+      const { brojiloId, adresa } = e.detail;
+
+      const noviKvarAlarm = {
+        id: Math.random().toString(),
+        tip: 'kvar', 
+        naslov: 'DETEKTOVAN KVAR / PREKID RADA',
+        poruka: `Brojilo na adresi "${adresa}" je prešlo u OFFLINE status. Sistem je automatski podneo prijavu terenskoj službi.`,
+        brojiloId: String(brojiloId),
+        vreme: new Date().toLocaleTimeString()
+      };
+
+      setAlarmi((prethodni) => [noviKvarAlarm, ...prethodni]);
+    };
+
+    window.addEventListener('lokalniKvarUpozorenje', handleLokalniKvar);
+
     return () => {
-      active = false;
+     active = false;
+      window.removeEventListener('lokalniKvarUpozorenje', handleLokalniKvar);
       if (globalnaKonekcija) {
         globalnaKonekcija.off('KriticanNaponUpozorenje');
         globalnaKonekcija.stop().catch(() => {});
-      }
+          }
     };
   }, []);
 
@@ -80,43 +100,50 @@ const GlobalNotificationCenter = () => {
   if (alarmi.length === 0) return null; 
 
   return (
-    <div style={{
+   <div style={{
       position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
       display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px', width: '100%'
     }}>
-      {alarmi.map((alarm) => (
-        <div 
-          key={alarm.id} 
-          style={{
-            backgroundColor: '#1e1e24', color: 'white', padding: '15px',
-            borderRadius: '6px', borderLeft: '6px solid #ff4d4d',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)', position: 'relative'
-          }}
-        >
-          <button 
-            onClick={() => ukloniAlarm(alarm.id)}
+      {alarmi.map((alarm) => {
+        // Dinamička boja ivice i naslova u zavisnosti od tipa alarma
+        const jeKvar = alarm.tip === 'kvar';
+        const bojaTeme = jeKvar ? '#ff9800' : '#ff4d4d'; 
+
+        return (
+          <div 
+            key={alarm.id} 
             style={{
-              position: 'absolute', top: '8px', right: '10px', background: 'none',
-              border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold'
+              backgroundColor: '#1e1e24', color: 'white', padding: '15px',
+              borderRadius: '6px', borderLeft: `6px solid ${bojaTeme}`,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)', position: 'relative',
+              animation: 'slideIn 0.3s ease-out'
             }}
           >
-            ✕
-          </button>
-          
-          <div style={{ fontWeight: 'bold', color: '#ff4d4d', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            HITNO UPOZORENJE MREŽE
+            <button 
+              onClick={() => ukloniAlarm(alarm.id)}
+              style={{
+                position: 'absolute', top: '8px', right: '10px', background: 'none',
+                border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold'
+              }}
+            >
+              ✕
+            </button>
+            
+            <div style={{ fontWeight: 'bold', color: bojaTeme, marginBottom: '5px', fontSize: '13px', tracking: 'wide' }}>
+              {alarm.naslov}
+            </div>
+            <p style={{ margin: '0 0 8px 0', fontSize: '13px', lineHeight: '1.4', color: '#eeeeee' }}>{alarm.poruka}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', borderTop: '1px solid #333', paddingTop: '6px' }}>
+              <span>
+                ID: <code style={{ fontFamily: 'monospace', color: '#20c997' }}>
+                  {alarm.brojiloId.length > 8 ? `${alarm.brojiloId.substring(0, 8)}...` : alarm.brojiloId}
+                </code>
+              </span>
+              <span>Vreme: <strong>{alarm.vreme}</strong></span>
+            </div>
           </div>
-          <p style={{ margin: '0 0 8px 0', fontSize: '14px', lineHeight: '1.4' }}>{alarm.poruka}</p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', borderTop: '1px solid #333', paddingTop: '6px' }}>
-            <span>
-              ID: <code style={{ fontFamily: 'monospace', color: '#20c997' }}>
-                {alarm.brojiloId.length > 8 ? `${alarm.brojiloId.substring(0, 8)}...` : alarm.brojiloId}
-              </code>
-            </span>
-            <span>Vreme: <strong>{alarm.vreme}</strong></span>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
