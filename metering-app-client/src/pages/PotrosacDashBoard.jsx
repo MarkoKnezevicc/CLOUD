@@ -36,7 +36,7 @@ const PotrosacDashboard = () => {
     }
   };
 
-  // DODATO: Ucitavanje racuna 
+  // Ucitavanje racuna 
   const ucitajRacune = async (brojiloId) => {
     if (aktivnoBrojiloZaRacune === brojiloId) {
       setAktivnoBrojiloZaRacune(null);
@@ -53,6 +53,24 @@ const PotrosacDashboard = () => {
       setGreska('Sistemska greska.');
     } finally {
       setUcitavamRacune(false);
+    }
+  };
+
+  // Pokretanje Stripe placanja
+  const platiRacun = async (racunId) => {
+    try {
+      const res = await fetch(`https://localhost:7078/api/placanje/kreiraj-sesiju/${racunId}`, {
+        method: 'POST',
+        headers: getHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        window.location.href = data.url;
+      } else {
+        setGreska('Greska pri pokretanju placanja.');
+      }
+    } catch {
+      setGreska('Sistemska greska.');
     }
   };
 
@@ -235,6 +253,11 @@ const PotrosacDashboard = () => {
                                       <span style = {{ backgroundColor: r.status === 'Placen' ? '#d4edda' : '#f8d7da', color: r.status === 'Placen' ? '#155724' : '#721c24', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold'}}>
                                         {r.status}
                                       </span>
+                                      {r.status !== 'Placen' && (
+                                        <button onClick={() => platiRacun(r.id)} style={{ marginLeft: '8px', backgroundColor: '#28a745', color: 'white', border: 'none', padding: '3px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+                                          Plati
+                                        </button>
+                                      )}
                                     </td>
                                   </tr>
                                 ))}
