@@ -34,7 +34,7 @@ namespace FunctionApp
             int godina = prosliMesec.Year;
             int mesec = prosliMesec.Month;
 
-            _logger.LogInformation($"[OBRACUN] Obradjujem period: {mesec} /{ godina}");
+            _logger.LogInformation($"[OBRACUN] Obradjujem period: {mesec} /{godina}");
 
             // Logika ovde
             using SqlConnection conn = new SqlConnection(sqlConnectionString);
@@ -101,7 +101,7 @@ namespace FunctionApp
 
             string tableConnString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
             var tableClient = new TableClient(tableConnString, "Telemetrije");
-            tableClient.CreateIfNotExists(); 
+            tableClient.CreateIfNotExists();
 
             foreach (var brojilo in brojilaLista)
             {
@@ -168,7 +168,7 @@ namespace FunctionApp
                 // Raspodela VT/NT po zonama
                 decimal zVT = zUkupno * kVT; decimal zNT = zUkupno * kNT;
                 decimal pVT = pUkupno * kVT; decimal pNT = pUkupno * kNT;
-                decimal cVT = cUkupno* kVT; decimal cNT = cUkupno * kNT;
+                decimal cVT = cUkupno * kVT; decimal cNT = cUkupno * kNT;
 
                 // Finansijski iznosi
                 decimal iznosZelena = (zVT * cenaZ_VT) + (zNT * cenaZ_NT);
@@ -255,6 +255,7 @@ namespace FunctionApp
 
                 try
                 {
+
                     string sendGridKey = Environment.GetEnvironmentVariable("SendGridApiKey");
 
                     var sgClient = new SendGridClient(sendGridKey);

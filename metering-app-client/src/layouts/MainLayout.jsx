@@ -1,20 +1,20 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import GlobalNotificationCenter from '../components/GlobalNotificationCenter';
-import { authService } from '../services/authService'; 
+import { authService } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const MainLayout = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const trenutniKorisnik = authService.getUser();
-  const rola = trenutniKorisnik?.role || trenutniKorisnik?.uloga || 'Potrosac'; 
+  const rola = trenutniKorisnik?.role || trenutniKorisnik?.uloga || 'Potrosac';
   const isSistemskiAdmin = rola === 'SistemskiAdmin';
   const emailKorisnika = trenutniKorisnik?.email || 'Korisnik';
 
   const handleLogout = () => {
-    localStorage.clear(); 
-    if (authService?.logout) authService.logout();
-    navigate('/login');
+    logout();
   };
 
   return (

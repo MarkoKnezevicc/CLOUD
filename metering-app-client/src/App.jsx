@@ -8,20 +8,32 @@ import NaplataDashboard from './pages/NaplataDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Unauthorized from './pages/Unauthorized';
 import LiveTelemetry from './pages/LiveTelemetry';
-import UserMeters from './pages/UserMeters'; 
+import UserMeters from './pages/UserMeters';
+import { useAuth } from './context/AuthContext';
+
+const PocetnaRuta = () => {
+  const { user } = useAuth();
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.uloga === 'SistemskiAdmin') return <Navigate to="/admin" replace />;
+  if (user.uloga === 'AdministratorNaplate') return <Navigate to="/naplata" replace />;
+  return <Navigate to="/potrosac" replace />;
+};
 
 function App() {
   return (
     <Router>
       <Routes>
-        
+
         {/* JAVNE RUTE */}
         <Route path="/login" element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* SVE RUTE UNUTAR MAINLAYOUT-A DELE ISTI MENI / NAVIGACIJU */}
-        <Route path="/" element={<MainLayout />}>
-          
+        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+
+          <Route index element={<PocetnaRuta />} />
+
           {/* RUTA ZA POTROŠAČA */}
           <Route path="potrosac" element={
             <ProtectedRoute dozvoljeneUloge={['Potrosac']}>
