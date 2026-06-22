@@ -13,10 +13,11 @@ using SmartMetering.AzureFunctions.Infrastructure.Persistence;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
-
+/*
 builder.Services.AddOpenTelemetry()
     .UseFunctionsWorkerDefaults();
 //.UseAzureMonitorExporter();
+*/
 
 builder.Services.AddSingleton(_ =>
 {
