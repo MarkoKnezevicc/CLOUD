@@ -43,7 +43,7 @@ const LiveTelemetry = () => {
     prethodnaPotrosnjaRef.current = null;
     
     const novaKonekcija = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:7056/api') 
+      .withUrl('http://localhost:7071/api') 
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning) 
       .build();
@@ -120,7 +120,7 @@ const LiveTelemetry = () => {
         await novaKonekcija.start();
         if (!active) return;
         setStatusKonekcije('Povezan');
-        await fetch('http://localhost:7056/api/joinGroup', {
+        await fetch('http://localhost:7071/api/joinGroup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ connectionId: novaKonekcija.connectionId, groupName: brojiloId })

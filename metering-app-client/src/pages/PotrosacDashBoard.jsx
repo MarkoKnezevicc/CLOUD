@@ -5,28 +5,21 @@ const PotrosacDashboard = () => {
   const [objekti, setObjekti] = useState([]);
   const [greska, setGreska] = useState('');
   const [poruka, setPoruka] = useState('');
-  // Dodato
   const [aktivnoBrojiloZaRacune, setAktivnoBrojiloZaRacune] = useState(null);
   const [racuni, setRacuni] = useState([]);
   const [ucitavamRacune, setUcitavamRacune] = useState(false);
-
-  // Limit potrosnje
-  const [aktivnoBrojiloZaLimit, setAktivnoBrojiloZaLimit] = useState(null);
-  const [limitVrednost, setLimitVrednost] = useState('');
-  const [limitJedinica, setLimitJedinica] = useState('KWh');
-
-  // Stanje za formu novog objekta
   const [noviObjekat, setNoviObjekat] = useState({ naziv: '', grad: '', adresa: '', opis: '' });
-
-  // Pratimo samo koji objekat ima otvorenu formu za brojilo
   const [aktivniObjekatId, setAktivniObjekatId] = useState(null);
+
+  const [brojiloZaPrijavu, setBrojiloZaPrijavu] = useState(null);
+  const [rucnaVrednost, setRucnaVrednost] = useState('');
+  const [odabranaSlika, setOdabranaSlika] = useState(null);
 
   const getHeaders = () => ({
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${authService.getToken()}`
   });
 
-  // 1. Učitavanje svih objekata i brojila
   const ucitajObjekte = async () => {
     try {
       const res = await fetch('https://localhost:7078/api/potrosac/objekti', { headers: getHeaders() });
@@ -41,7 +34,6 @@ const PotrosacDashboard = () => {
     }
   };
 
-  // Ucitavanje racuna 
   const ucitajRacune = async (brojiloId) => {
     if (aktivnoBrojiloZaRacune === brojiloId) {
       setAktivnoBrojiloZaRacune(null);
@@ -61,58 +53,6 @@ const PotrosacDashboard = () => {
     }
   };
 
-  // Limit potrosnje
-  const otvoriFormuLimita = (brojilo) => {
-  if (aktivnoBrojiloZaLimit === brojilo.id) {
-    setAktivnoBrojiloZaLimit(null);
-    return;
-  }
-  setAktivnoBrojiloZaLimit(brojilo.id);
-  setLimitVrednost(brojilo.limitVrednost ?? '');
-  setLimitJedinica(brojilo.limitJedinica ?? 'KWh');
-};
-
-const sacuvajLimit = async (brojiloId) => {
-  try {
-    const res = await fetch(`https://localhost:7078/api/potrosac/brojila/${brojiloId}/limit`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({
-        LimitVrednost: limitVrednost === '' ? null : parseFloat(limitVrednost),
-        LimitJedinica: limitJedinica
-      })
-    });
-    if (res.ok) {
-      setPoruka('Limit potrošnje sačuvan!');
-      setAktivnoBrojiloZaLimit(null);
-      ucitajObjekte();
-    } else {
-      const err = await res.json();
-      setGreska(err.poruka || 'Greška pri čuvanju limita.');
-    }
-  } catch {
-    setGreska('Sistemska greška.');
-  }
-};
-
-const ukloniLimit = async (brojiloId) => {
-  try {
-    const res = await fetch(`https://localhost:7078/api/potrosac/brojila/${brojiloId}/limit`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({ LimitVrednost: null, LimitJedinica: null })
-    });
-    if (res.ok) {
-      setPoruka('Limit uklonjen!');
-      setAktivnoBrojiloZaLimit(null);
-      ucitajObjekte();
-    }
-  } catch {
-    setGreska('Sistemska greška.');
-  }
-};
-
-  // Pokretanje Stripe placanja
   const platiRacun = async (racunId) => {
     try {
       const res = await fetch(`https://localhost:7078/api/placanje/kreiraj-sesiju/${racunId}`, {
@@ -132,7 +72,6 @@ const ukloniLimit = async (brojiloId) => {
 
   useEffect(() => { ucitajObjekte(); }, []);
 
-  // 2. Dodavanje novog objekta
   const handleDodajObjekat = async (e) => {
     e.preventDefault();
     setGreska(''); setPoruka('');
@@ -161,23 +100,17 @@ const ukloniLimit = async (brojiloId) => {
     }
   };
 
-  // 3. Registracija pametnog brojila (Samo Serijski Broj, Tip i Napomena)
   const handleRegistrujBrojilo = async (e, objekatId) => {
     e.preventDefault();
     setGreska(''); 
     setPoruka('');
 
     const formData = new FormData(e.target);
-
-    // OPTIMIZOVAN PAYLOAD: Bez Oznake brojila
     const payload = {
       SerijskiBroj: formData.get("serijskiBroj"),
       Tip: formData.get("tip"),
       Napomena: formData.get("napomena") || ""
     };
-
-    console.log("--- DEBUG REAL PAYLOAD ---");
-    console.log("Šaljem na backend za objekat ID " + objekatId + ":", payload);
 
     try {
       const res = await fetch(`https://localhost:7078/api/potrosac/objekti/${objekatId}/brojila`, {
@@ -203,6 +136,41 @@ const ukloniLimit = async (brojiloId) => {
     }
   };
 
+  const handlePrijaviMerenje = async (e) => {
+    e.preventDefault();
+    setGreska('');
+    setPoruka('');
+
+    if (!rucnaVrednost || !odabranaSlika) {
+      setGreska('Morate uneti vrednost i priložiti sliku.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('BrojiloId', brojiloZaPrijavu);
+    formData.append('Vrednost', rucnaVrednost);
+    formData.append('Slika', odabranaSlika);
+
+    try {
+    const res = await fetch('http://localhost:7071/api/merenje/prijavi', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (res.ok) {
+      setPoruka('Merenje i dokaz su uspešno poslati na proveru.');
+      setBrojiloZaPrijavu(null);
+      setRucnaVrednost('');
+      setOdabranaSlika(null);
+    } else {
+      const errText = await res.text();
+      setGreska(errText || 'Greška pri slanju ručnog merenja.');
+    }
+  } catch {
+    setGreska('Sistemska greška pri slanju merenja.');
+  }
+  };
+
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', padding: '20px' }}>
       <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #34495e', paddingBottom: '10px' }}>
@@ -212,7 +180,6 @@ const ukloniLimit = async (brojiloId) => {
       {greska && <div style={{ color: 'red', backgroundColor: '#f8d7da', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>{greska}</div>}
       {poruka && <div style={{ color: 'green', backgroundColor: '#d4edda', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>{poruka}</div>}
 
-      {/* FORMA ZA DODAVANJE OBJEKTA */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
         <h4>Dodaj novi objekat (Stan, Kuća, Vikendica...)</h4>
         <form onSubmit={handleDodajObjekat} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
@@ -227,13 +194,11 @@ const ukloniLimit = async (brojiloId) => {
         </form>
       </div>
 
-      {/* PRIKAZ OBJEKATA I NJIHOVIH BROJILA */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {objekti.map(obj => (
           <div key={obj.id} style={{ backgroundColor: 'white', border: '1px solid #dee2e6', borderRadius: '8px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h4 style={{ marginTop: 0, color: '#007bff' }}>{obj.naziv} <span style={{ color: '#6c757d', fontSize: '14px' }}>- {obj.adresa}, {obj.grad}</span></h4>
             
-            {/* Tabela sa brojilima za ovaj objekat */}
             {obj.brojila && obj.brojila.length > 0 ? (
               <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px', marginBottom: '15px' }}>
                 <thead>
@@ -242,7 +207,7 @@ const ukloniLimit = async (brojiloId) => {
                     <th>Tip Priključka</th>
                     <th>Max Snaga (kW)</th>
                     <th>Status</th>
-                    <th>Limit potrošnje</th>
+                    <th>Akcije</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -261,42 +226,22 @@ const ukloniLimit = async (brojiloId) => {
                           {b.status === 'Uparen' ? '🟢 Uparen' : '🟡 Neuparen'}
                         </span>
                       </td>
-                      <td>
-                        {b.limitVrednost ? (
-                          <span style={{ marginRight: '8px' }}>{b.limitVrednost} {b.limitJedinica === 'RSD' ? 'RSD' : 'kWh'}</span>
-                        ) : (
-                          <span style={{ color: '#6c757d', marginRight: '8px', fontSize: '13px' }}>Nije podešen</span>
-                        )}
-                        <button onClick={() => otvoriFormuLimita(b)} style={{ backgroundColor: '#fd7e14', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
-                          {aktivnoBrojiloZaLimit === b.id ? 'Zatvori' : 'Podesi'}
-                        </button>
-
-                        {aktivnoBrojiloZaLimit === b.id && (
-                          <div style={{ marginTop: '8px', display: 'flex', gap: '5px', alignItems: 'center' }}>
-                            <input type="number" step="0.01" placeholder="Vrednost" value={limitVrednost} onChange={e => setLimitVrednost(e.target.value)} style={{ width: '90px', padding: '4px' }} />
-                            <select value={limitJedinica} onChange={e => setLimitJedinica(e.target.value)} style={{ padding: '4px' }}>
-                              <option value="KWh">kWh</option>
-                              <option value="RSD">RSD</option>
-                            </select>
-                            <button onClick={() => sacuvajLimit(b.id)} style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Sačuvaj</button>
-                            {b.limitVrednost && (
-                              <button onClick={() => ukloniLimit(b.id)} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Ukloni</button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td>
+                      <td style={{ display: 'flex', gap: '5px', padding: '10px 0' }}>
                         <button onClick={() => ucitajRacune(b.id)}
                         style = {{ backgroundColor: '#6f42c1', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}>
                           {aktivnoBrojiloZaRacune == b.id ? 'Zatvori racune' : 'Prikazi racune'}
                         </button>
+                        
+                        <button onClick={() => setBrojiloZaPrijavu(b.id)}
+                        style = {{ backgroundColor: '#fd7e14', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}>
+                          Prijavi stanje
+                        </button>
                       </td>
                     </tr>
                     
-                    {/* Red sa racunima */}
                     {aktivnoBrojiloZaRacune === b.id && (
                       <tr>
-                        <td colSpan="6" style = {{ backgroundColor: '#f8f9fa', padding: '15px'}}>
+                        <td colSpan="5" style = {{ backgroundColor: '#f8f9fa', padding: '15px'}}>
                           {ucitavamRacune ? (
                             <p>Ucitavam racune...</p>
                           ) : racuni.length === 0 ? (
@@ -356,7 +301,6 @@ const ukloniLimit = async (brojiloId) => {
               <p style={{ color: '#6c757d', fontStyle: 'italic' }}>Nema dodatih brojila za ovaj objekat.</p>
             )}
 
-            {/* Dugme za otvaranje forme za dodavanje brojila */}
             {aktivniObjekatId !== obj.id ? (
               <button 
                 onClick={() => setAktivniObjekatId(obj.id)} 
@@ -365,11 +309,9 @@ const ukloniLimit = async (brojiloId) => {
                 + Registruj brojilo
               </button>
             ) : (
-              /* Forma za dodavanje brojila - OznakaBrojila je uspešno izbačena */
               <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px dashed #ced4da' }}>
                 <h5 style={{ marginTop: 0 }}>Registracija novog brojila (Format: SA-YYYY-XXXXX)</h5>
                 <form onSubmit={(e) => handleRegistrujBrojilo(e, obj.id)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  
                   <input type="text" name="serijskiBroj" placeholder="Serijski broj (npr. SA-2026-12345)" required style={{ padding: '8px', gridColumn: 'span 2' }} />
                   
                   <select name="tip" defaultValue="Monofazni" style={{ padding: '8px' }}>
@@ -392,6 +334,32 @@ const ukloniLimit = async (brojiloId) => {
           <p style={{ textAlign: 'center', color: '#6c757d', padding: '20px' }}>Trenutno nemate nijedan unet objekat.</p>
         )}
       </div>
+
+      {brojiloZaPrijavu && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', width: '400px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            <h4 style={{ marginTop: 0, color: '#2c3e50' }}>📝 Ručna prijava potrošnje</h4>
+            <p style={{ fontSize: '14px', color: '#6c757d' }}>Prijavljujete stanje za ID brojila: <strong>{brojiloZaPrijavu}</strong></p>
+            
+            <form onSubmit={handlePrijaviMerenje}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' }}>Trenutna vrednost (kWh):</label>
+                <input type="number" step="0.01" value={rucnaVrednost} onChange={e => setRucnaVrednost(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' }}>Slika displeja brojila:</label>
+                <input type="file" accept="image/*" onChange={e => setOdabranaSlika(e.target.files[0])} required style={{ width: '100%' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => { setBrojiloZaPrijavu(null); setRucnaVrednost(''); setOdabranaSlika(null); }} style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}>Otkaži</button>
+                <button type="submit" style={{ backgroundColor: '#fd7e14', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Pošalji prijavu</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

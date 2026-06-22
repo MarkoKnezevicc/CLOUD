@@ -12,7 +12,7 @@ const GlobalNotificationCenter = () => {
     console.log("Pokrećem GLOBALNI centar za hitna upozorenja...");
 
     const globalnaKonekcija = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:7056/api') 
+      .withUrl('http://localhost:7071/api') 
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning) 
       .build();
@@ -46,7 +46,7 @@ const GlobalNotificationCenter = () => {
         setKonekcijaStatus('Povezan');
         console.log(`📡 Globalni mrežni ID: ${globalnaKonekcija.connectionId}. Ulazak u sobu SvaKriticnaStanja`);
 
-        await fetch('http://localhost:7056/api/joinGroup', {
+        await fetch('http://localhost:7071/api/joinGroup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

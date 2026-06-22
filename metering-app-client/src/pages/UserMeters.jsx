@@ -48,7 +48,7 @@ const UserMeters = () => {
   useEffect(() => {
   
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl("http://localhost:7056/api") 
+    .withUrl("http://localhost:7071/api") 
     .withAutomaticReconnect()
     .build();
 
@@ -57,7 +57,7 @@ const UserMeters = () => {
       console.log("Tabela brojila se uspešno pretplatila na SveMrezneAktivnosti kanal!");
       
       
-      fetch('http://localhost:7056/api/joinGroup', {
+      fetch('http://localhost:7071/api/joinGroup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

@@ -12,7 +12,7 @@ namespace BrojiloSimulator
         private static readonly HttpClient client = new HttpClient();
 
         //url
-        private const string AzureFuncBaseUrl = "http://localhost:7056/api";
+        private const string AzureFuncBaseUrl = "http://localhost:7071/api";
         private static string AzureActivateUrl => $"{AzureFuncBaseUrl}/device/activate";
         private static string AzureTelemetryUrl => $"{AzureFuncBaseUrl}/telemetrija";
 
