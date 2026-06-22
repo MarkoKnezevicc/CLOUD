@@ -2,10 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
-
-
+StripeConfiguration.ApiKey = builder.Configuration["StripeSecretKey"];
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<SmartMeteringDbContext>(options =>
     options.UseSqlServer(connectionString));

@@ -9,6 +9,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Unauthorized from './pages/Unauthorized';
 import LiveTelemetry from './pages/LiveTelemetry';
 import UserMeters from './pages/UserMeters';
+import PlacanjeUspesno from './pages/PlacanjeUspesno';
+import PlacanjeOtkazano from './pages/PlacanjeOtkazano';
 import { useAuth } from './context/AuthContext';
 
 const PocetnaRuta = () => {
@@ -28,6 +30,8 @@ function App() {
         {/* JAVNE RUTE */}
         <Route path="/login" element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/placanje-uspesno" element={<PlacanjeUspesno />} />
+        <Route path="/placanje-otkazano" element={<PlacanjeOtkazano />} />
 
         {/* SVE RUTE UNUTAR MAINLAYOUT-A DELE ISTI MENI / NAVIGACIJU */}
         <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>

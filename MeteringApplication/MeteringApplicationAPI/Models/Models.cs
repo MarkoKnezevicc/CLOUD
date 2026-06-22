@@ -146,4 +146,5 @@ public class Racun
 
     // Tekstualni format racuna - ceo tekst racuna se cuva
     public string TekstRacuna { get; set; }
+    public string? StripeSessionId { get; set; }
 }
