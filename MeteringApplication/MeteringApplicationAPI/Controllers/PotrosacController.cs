@@ -21,6 +21,11 @@ public class BrojiloRegistracijaDto
     public string? Tip { get; set; }
     public string? Napomena { get; set; }
 }
+public class LimitPodesavanjeDto
+{
+    public decimal? LimitVrednost { get; set; }
+    public string? LimitJedinica { get; set; }
+}
 
 [ApiController]
 [Route("api/[controller]")]
@@ -63,7 +68,9 @@ public class PotrosacController : ControllerBase
                     b.MaksimalnaOdobrenaSnaga,
                     b.SerijskiBroj,
                     Status = b.Status.ToString(),
-                    b.Napomena
+                    b.Napomena,
+                    b.LimitVrednost,
+                    LimitJedinica = b.LimitJedinica.HasValue ? b.LimitJedinica.ToString() : null
                 })
             }).ToListAsync();
 
@@ -175,6 +182,42 @@ public class PotrosacController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { poruka = "Brojilo uspešno registrovano sa statusom Neuparen!" });
+    }
+
+    [HttpPut("brojila/{brojiloId}/limit")]
+    public async Task<IActionResult> PodesiLimit(int brojiloId, [FromBody] LimitPodesavanjeDto dto)
+    {
+        int korisnikId = VratiTrenutnogKorisnikaId();
+
+        var brojilo = await _context.PametnaBrojila
+            .Include(b => b.Objekat)
+            .FirstOrDefaultAsync(b => b.Id == brojiloId && b.Objekat.KorisnikId == korisnikId);
+
+        if (brojilo == null)
+            return NotFound(new { poruka = "Brojilo nije pronađeno ili nemate pravo pristupa." });
+
+        if (dto.LimitVrednost == null)
+        {
+            brojilo.LimitVrednost = null;
+            brojilo.LimitJedinica = null;
+        }
+        else
+        {
+            if (dto.LimitVrednost.Value <= 0)
+                return BadRequest(new { poruka = "Limit mora biti veći od nule." });
+
+            if (string.IsNullOrEmpty(dto.LimitJedinica) || !Enum.TryParse<JedinicaLimita>(dto.LimitJedinica, true, out var jedinica))
+                return BadRequest(new { poruka = "Neispravna jedinica limita (KWh/RSD)." });
+
+            brojilo.LimitVrednost = dto.LimitVrednost;
+            brojilo.LimitJedinica = jedinica;
+        }
+
+        brojilo.UpozorenjePoslato = false;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { poruka = "Limit potrošnje uspešno ažuriran." });
     }
 }
 

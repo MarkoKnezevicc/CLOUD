@@ -10,6 +10,11 @@ const PotrosacDashboard = () => {
   const [racuni, setRacuni] = useState([]);
   const [ucitavamRacune, setUcitavamRacune] = useState(false);
 
+  // Limit potrosnje
+  const [aktivnoBrojiloZaLimit, setAktivnoBrojiloZaLimit] = useState(null);
+  const [limitVrednost, setLimitVrednost] = useState('');
+  const [limitJedinica, setLimitJedinica] = useState('KWh');
+
   // Stanje za formu novog objekta
   const [noviObjekat, setNoviObjekat] = useState({ naziv: '', grad: '', adresa: '', opis: '' });
 
@@ -55,6 +60,57 @@ const PotrosacDashboard = () => {
       setUcitavamRacune(false);
     }
   };
+
+  // Limit potrosnje
+  const otvoriFormuLimita = (brojilo) => {
+  if (aktivnoBrojiloZaLimit === brojilo.id) {
+    setAktivnoBrojiloZaLimit(null);
+    return;
+  }
+  setAktivnoBrojiloZaLimit(brojilo.id);
+  setLimitVrednost(brojilo.limitVrednost ?? '');
+  setLimitJedinica(brojilo.limitJedinica ?? 'KWh');
+};
+
+const sacuvajLimit = async (brojiloId) => {
+  try {
+    const res = await fetch(`https://localhost:7078/api/potrosac/brojila/${brojiloId}/limit`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        LimitVrednost: limitVrednost === '' ? null : parseFloat(limitVrednost),
+        LimitJedinica: limitJedinica
+      })
+    });
+    if (res.ok) {
+      setPoruka('Limit potrošnje sačuvan!');
+      setAktivnoBrojiloZaLimit(null);
+      ucitajObjekte();
+    } else {
+      const err = await res.json();
+      setGreska(err.poruka || 'Greška pri čuvanju limita.');
+    }
+  } catch {
+    setGreska('Sistemska greška.');
+  }
+};
+
+const ukloniLimit = async (brojiloId) => {
+  try {
+    const res = await fetch(`https://localhost:7078/api/potrosac/brojila/${brojiloId}/limit`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ LimitVrednost: null, LimitJedinica: null })
+    });
+    if (res.ok) {
+      setPoruka('Limit uklonjen!');
+      setAktivnoBrojiloZaLimit(null);
+      ucitajObjekte();
+    }
+  } catch {
+    setGreska('Sistemska greška.');
+  }
+};
 
   // Pokretanje Stripe placanja
   const platiRacun = async (racunId) => {
@@ -186,6 +242,7 @@ const PotrosacDashboard = () => {
                     <th>Tip Priključka</th>
                     <th>Max Snaga (kW)</th>
                     <th>Status</th>
+                    <th>Limit potrošnje</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -205,6 +262,30 @@ const PotrosacDashboard = () => {
                         </span>
                       </td>
                       <td>
+                        {b.limitVrednost ? (
+                          <span style={{ marginRight: '8px' }}>{b.limitVrednost} {b.limitJedinica === 'RSD' ? 'RSD' : 'kWh'}</span>
+                        ) : (
+                          <span style={{ color: '#6c757d', marginRight: '8px', fontSize: '13px' }}>Nije podešen</span>
+                        )}
+                        <button onClick={() => otvoriFormuLimita(b)} style={{ backgroundColor: '#fd7e14', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+                          {aktivnoBrojiloZaLimit === b.id ? 'Zatvori' : 'Podesi'}
+                        </button>
+
+                        {aktivnoBrojiloZaLimit === b.id && (
+                          <div style={{ marginTop: '8px', display: 'flex', gap: '5px', alignItems: 'center' }}>
+                            <input type="number" step="0.01" placeholder="Vrednost" value={limitVrednost} onChange={e => setLimitVrednost(e.target.value)} style={{ width: '90px', padding: '4px' }} />
+                            <select value={limitJedinica} onChange={e => setLimitJedinica(e.target.value)} style={{ padding: '4px' }}>
+                              <option value="KWh">kWh</option>
+                              <option value="RSD">RSD</option>
+                            </select>
+                            <button onClick={() => sacuvajLimit(b.id)} style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Sačuvaj</button>
+                            {b.limitVrednost && (
+                              <button onClick={() => ukloniLimit(b.id)} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Ukloni</button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td>
                         <button onClick={() => ucitajRacune(b.id)}
                         style = {{ backgroundColor: '#6f42c1', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}>
                           {aktivnoBrojiloZaRacune == b.id ? 'Zatvori racune' : 'Prikazi racune'}
@@ -215,7 +296,7 @@ const PotrosacDashboard = () => {
                     {/* Red sa racunima */}
                     {aktivnoBrojiloZaRacune === b.id && (
                       <tr>
-                        <td colSpan="5" style = {{ backgroundColor: '#f8f9fa', padding: '15px'}}>
+                        <td colSpan="6" style = {{ backgroundColor: '#f8f9fa', padding: '15px'}}>
                           {ucitavamRacune ? (
                             <p>Ucitavam racune...</p>
                           ) : racuni.length === 0 ? (
