@@ -21,6 +21,12 @@ public enum StatusUredjaja
     Uparen
 }
 
+public enum JedinicaLimita
+{
+    KWh,
+    RSD
+}
+
 public class Korisnik
 {
     public int Id { get; set; }
@@ -90,6 +96,16 @@ public class PametnoBrojilo
 
     public int ObjekatId { get; set; }
     public Objekat Objekat { get; set; }
+
+    // Limit potrosnje 
+    public decimal? LimitVrednost { get; set; }
+    public JedinicaLimita? LimitJedinica { get; set; }
+
+    // Pracenje za potrebe limita 
+    public decimal PocetnoStanjeMeseca { get; set; }
+    public int PracenjeMesec { get; set; }
+    public int PracenjeGodina { get; set; }
+    public bool UpozorenjePoslato { get; set; }
 }
 
 public class TarifniModel

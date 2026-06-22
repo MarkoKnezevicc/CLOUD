@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MeteringApplicationAPI.Migrations
 {
     [DbContext(typeof(SmartMeteringDbContext))]
-    partial class SmartMeteringDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622102823_DodatStripeSessionId")]
+    partial class DodatStripeSessionId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -108,12 +111,6 @@ namespace MeteringApplicationAPI.Migrations
                     b.Property<string>("DeviceAccessToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("LimitJedinica")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("LimitVrednost")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("MaksimalnaOdobrenaSnaga")
                         .HasColumnType("decimal(18,2)");
 
@@ -122,15 +119,6 @@ namespace MeteringApplicationAPI.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ObjekatId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("PocetnoStanjeMeseca")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int>("PracenjeGodina")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PracenjeMesec")
                         .HasColumnType("int");
 
                     b.Property<string>("SerijskiBroj")
@@ -142,9 +130,6 @@ namespace MeteringApplicationAPI.Migrations
 
                     b.Property<int>("Tip")
                         .HasColumnType("int");
-
-                    b.Property<bool>("UpozorenjePoslato")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Uuid")
                         .HasColumnType("nvarchar(450)");

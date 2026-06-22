@@ -45,6 +45,10 @@ public class SmartMeteringDbContext : DbContext
 
             entity.Property(pb => pb.MaksimalnaOdobrenaSnaga)
                   .HasColumnType("decimal(18,2)");
+            entity.Property(pb => pb.LimitVrednost)
+                  .HasColumnType("decimal(18,2)");
+            entity.Property(pb => pb.PocetnoStanjeMeseca)
+                  .HasColumnType("decimal(18,4)");
 
             entity.HasOne(pb => pb.Objekat)
                   .WithMany(o => o.PametnaBrojila)
